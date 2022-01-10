@@ -2158,62 +2158,66 @@ impl DeviceManager {
                 net_cfg.pci_segment,
             ))
         } else {
-            let virtio_net_device = if let Some(ref tap_if_name) = net_cfg.tap {
-                Arc::new(Mutex::new(
-                    virtio_devices::Net::new(
-                        id.clone(),
-                        Some(tap_if_name),
-                        None,
-                        None,
-                        Some(net_cfg.mac),
-                        &mut net_cfg.host_mac,
-                        self.force_iommu | net_cfg.iommu,
-                        net_cfg.num_queues,
-                        net_cfg.queue_size,
-                        self.seccomp_action.clone(),
-                        net_cfg.rate_limiter_config,
-                        self.exit_evt
-                            .try_clone()
-                            .map_err(DeviceManagerError::EventFd)?,
-                    )
-                    .map_err(DeviceManagerError::CreateVirtioNet)?,
-                ))
-            } else if let Some(fds) = &net_cfg.fds {
-                Arc::new(Mutex::new(
-                    virtio_devices::Net::from_tap_fds(
-                        id.clone(),
-                        fds,
-                        Some(net_cfg.mac),
-                        self.force_iommu | net_cfg.iommu,
-                        net_cfg.queue_size,
-                        self.seccomp_action.clone(),
-                        net_cfg.rate_limiter_config,
-                        self.exit_evt
-                            .try_clone()
-                            .map_err(DeviceManagerError::EventFd)?,
-                    )
-                    .map_err(DeviceManagerError::CreateVirtioNet)?,
-                ))
-            } else {
-                Arc::new(Mutex::new(
-                    virtio_devices::Net::new(
-                        id.clone(),
-                        None,
-                        Some(net_cfg.ip),
-                        Some(net_cfg.mask),
-                        Some(net_cfg.mac),
-                        &mut net_cfg.host_mac,
-                        self.force_iommu | net_cfg.iommu,
-                        net_cfg.num_queues,
-                        net_cfg.queue_size,
-                        self.seccomp_action.clone(),
-                        net_cfg.rate_limiter_config,
-                        self.exit_evt
-                            .try_clone()
-                            .map_err(DeviceManagerError::EventFd)?,
-                    )
-                    .map_err(DeviceManagerError::CreateVirtioNet)?,
-                ))
+            let virtio_net_device = match net_cfg {
+                NetConfig { tap: Some(ref tap_if_name), .. } if !tap_if_name.is_empty() => {
+                    Arc::new(Mutex::new(
+                            virtio_devices::Net::new(
+                                id.clone(),
+                                Some(tap_if_name),
+                                None,
+                                None,
+                                Some(net_cfg.mac),
+                                &mut net_cfg.host_mac,
+                                self.force_iommu | net_cfg.iommu,
+                                net_cfg.num_queues,
+                                net_cfg.queue_size,
+                                self.seccomp_action.clone(),
+                                net_cfg.rate_limiter_config,
+                                self.exit_evt
+                                .try_clone()
+                                .map_err(DeviceManagerError::EventFd)?,
+                                )
+                            .map_err(DeviceManagerError::CreateVirtioNet)?,
+                            ))
+                },
+                NetConfig { fds: Some(fds), .. } if !fds.is_empty() => {
+                    Arc::new(Mutex::new(
+                            virtio_devices::Net::from_tap_fds(
+                                id.clone(),
+                                fds,
+                                Some(net_cfg.mac),
+                                self.force_iommu | net_cfg.iommu,
+                                net_cfg.queue_size,
+                                self.seccomp_action.clone(),
+                                net_cfg.rate_limiter_config,
+                                self.exit_evt
+                                .try_clone()
+                                .map_err(DeviceManagerError::EventFd)?,
+                                )
+                            .map_err(DeviceManagerError::CreateVirtioNet)?,
+                            ))
+                },
+                _ => {
+                    Arc::new(Mutex::new(
+                            virtio_devices::Net::new(
+                                id.clone(),
+                                None,
+                                Some(net_cfg.ip),
+                                Some(net_cfg.mask),
+                                Some(net_cfg.mac),
+                                &mut net_cfg.host_mac,
+                                self.force_iommu | net_cfg.iommu,
+                                net_cfg.num_queues,
+                                net_cfg.queue_size,
+                                self.seccomp_action.clone(),
+                                net_cfg.rate_limiter_config,
+                                self.exit_evt
+                                .try_clone()
+                                .map_err(DeviceManagerError::EventFd)?,
+                                )
+                            .map_err(DeviceManagerError::CreateVirtioNet)?,
+                            ))
+                },
             };
 
             // Fill the device tree with a new node. In case of restore, we
