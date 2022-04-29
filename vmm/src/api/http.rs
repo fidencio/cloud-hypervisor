@@ -174,6 +174,10 @@ fn handle_http_request(
     api_sender: &Sender<ApiRequest>,
 ) -> Response {
     let path = request.uri().get_abs_path().to_string();
+
+    println!("FIDENCIO | Cloud Hypervisor | handle_http_request | path: {:?}", path);
+    println!("FIDENCIO | Cloud Hypervisor | handle_http_request | request: {:?}", request);
+
     let mut response = match HTTP_ROUTES.routes.get(&path) {
         Some(route) => match api_notifier.try_clone() {
             Ok(notifier) => route.handle_request(request, notifier, api_sender.clone()),
