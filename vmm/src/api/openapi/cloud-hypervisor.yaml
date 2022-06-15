@@ -1101,6 +1101,9 @@ components:
         iommu:
           type: boolean
           default: false
+        pci_segment:
+          type: integer
+          format: int16
         id:
           type: string
 
